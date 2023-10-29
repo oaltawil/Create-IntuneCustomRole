@@ -47,16 +47,14 @@ param (
 )
 
 <#
+1. Import the Csv file.
 
-1. Import the Csv file:
+  -Column Headers:
+    ResourceAction,Allowed,Description
 
-  Column Headers:
-  ResourceAction,Allowed,Description
-
-  Sample:
-  AndroidFota_Assign,No,Assign Android firmware over-the-air (FOTA) deployments to Azure AD security groups.
-
-  #>
+  - Sample:
+    AndroidFota_Assign,No,Assign Android firmware over-the-air (FOTA) deployments to Azure AD security groups.
+#>
 
 # Import the Csv file to a collection (array) of PSCustomObject objects
 $ResourceActionCollection = Import-Csv -Path $RoleDefinitionCsvFilePath -ErrorAction Stop
@@ -84,12 +82,10 @@ $ResourceActionCollection | Get-Member -MemberType NoteProperty | ForEach-Object
 $AllowedResourceActions = $ResourceActionCollection | Where-Object Allowed -eq "Yes" | ForEach-Object {"Microsoft.Intune_$($_.ResourceAction)"}
 
 <#
+2. Create the MS Graph Role Definition object
 
-2. Create the Role Definition
-
-  - Define a Microsoft.Graph.RoleDefinition Json object using a hashtable
+  - Define a Microsoft.Graph.RoleDefinition object using a hashtable
   - Use the allowed resource actions (from the Csv file) for the corresponding property of the MS Graph Role Definition object
-
 #>
 
 Import-Module Microsoft.Graph.DeviceManagement.Administration -ErrorAction Stop
@@ -114,6 +110,12 @@ $params = @{
   isBuiltIn = $false
 }
 
+<#
+3. Connect to MS Graph and create the Role Definition
+
+  - Delete any existing role that has the same display name
+#>
+
 # Connect to Microsoft Graph and request the "RBAC Read/Write" scope
 Connect-MgGraph -UseDeviceAuthentication -Scopes DeviceManagementRBAC.ReadWrite.All
 
@@ -121,7 +123,9 @@ $ExistingRoleDefinition = Get-MgDeviceManagementRoleDefinition | Where-Object Di
 
 if ($ExistingRoleDefinition) {
 
-  Write-Warning "`nThe role $RoleDisplayName already exists and will be deleted.`n`n"
+  Write-Host "`n"
+
+  Write-Warning "The role $RoleDisplayName already exists and will be deleted.`n"
 
   Remove-MgDeviceManagementRoleDefinition -RoleDefinitionId $ExistingRoleDefinition.Id -Confirm:$false
 
