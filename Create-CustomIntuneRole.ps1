@@ -1,25 +1,28 @@
 <#
 .SYNOPSIS
-This script creates a new custom role, more specifically, a new role definition, in Microsoft Intune based on a list of resource actions described in a Csv file.
+This script creates a new custom role - more specifically, a new custom role definition - in Microsoft Intune based on a list of resource actions described in a Csv file.
 
 .DESCRIPTION
-1. The script reads a Csv file that contains the allowed resource actions for the new role definition. The Csv file should have the following format:
-    ResourceAction,Allowed,Description
-    AndroidFota_Assign,No,Assign Android firmware over-the-air (FOTA) deployments to Azure AD security groups.
+1. The script requires a Csv file that contains the allowed resource actions for the new role definition. The Csv file should have the following format:
+    ResourceAction,Allowed
+    AndroidFota_Assign,No
     ...
-2. Defines a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the Csv file for the corresponding property of the Role Definition object: rolePermissions -> resourceActions -> allowedResourceActions.
+2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the Csv file for the corresponding property of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions.
 3. Creates a custom role (role definition) using the MS Graph cmdlet New-MgDeviceManagementRoleDefinition. The cmdlet returns an Http response with an Http status code (200: OK - Request succeeded) and the role definition object in the body of the response.
-  
-- Warning: If a role with the same display name already exists, that role will be deleted and a new one will be created.
+
+If a role with the same display name already exists, the script returns an error and exits. Use the -Force parameter to delete the conflicting role and create a new one.
 
 .PARAMETER RoleDefinitionCsvFilePath
-Full path to a Csv file with the following schema (column headers): "ResourceAction", "Allowed", and "Description".
+Full path to a Csv file with the following schema (column headers): "ResourceAction" and "Allowed". Additional columns, e.g. Description, will be ignored.
 
 .PARAMETER RoleDisplayName
 Display name of the custom role.
 
 .PARAMETER RoleDescription
 Description of the custom role.
+
+.PARAMETER Force
+Deletes a conflicting role definition that has the same display name
 
 .EXAMPLE
 .\Create-CustomIntuneRole.ps1 -RoleDefinitionCsvFilePath "$ENV:USERPROFILE\Documents\CustomIntuneRole.csv" -RoleDisplayName "Help Desk L2 Administrator" -RoleDescription "Can view and manage various aspects of Microsoft Intune"
@@ -43,17 +46,19 @@ param (
   [String]
   [Parameter(Mandatory, Position=2)]
   [ValidateNotNullOrEmpty()]
-  $RoleDescription
+  $RoleDescription,
+  [Switch]
+  $Force
 )
 
 <#
 1. Import the Csv file.
 
-  -Column Headers:
-    ResourceAction,Allowed,Description
+  -Expected Column Headers:
+    ResourceAction,Allowed
 
-  - Sample:
-    AndroidFota_Assign,No,Assign Android firmware over-the-air (FOTA) deployments to Azure AD security groups.
+  - Example:
+    AndroidFota_Assign,No
 #>
 
 # Import the Csv file to a collection (array) of PSCustomObject objects
@@ -66,17 +71,17 @@ if (-not $ResourceActionCollection.count) {
 
 }
 
-$CsvColumnHeaders = @("ResourceAction", "Allowed", "Description")
+# Retrieve the properties of the PSCustomObject class
+$PSCustomObjectProperties = $ResourceActionCollection | Get-Member -MemberType NoteProperty | ForEach-Object {$_.Name}
 
-# Verify that the PSCustomObject objects have the same properties as the Csv column headers
-$ResourceActionCollection | Get-Member -MemberType NoteProperty | ForEach-Object {
-    
-    if ($_.Name -notin $CsvColumnHeaders) {
+# Verify that the PSCustomObject class has two properties called "ResourceAction" and "Allowed"
+if (("ResourceAction" -notin $PSCustomObjectProperties) -or ("Allowed" -notin $PSCustomObjectProperties)) {
 
-    Write-Error "The Csv file does not have the correct schema: ResourceAction, Allowed, and Description."
+  Write-Error "The Csv file does not have the correct schema: ResourceAction and Allowed."
 
-  }
 }
+
+
 
 # Retrieve the allowed resource actions. Prepend the provider name "Microsoft.Intune_" to the resource action name
 $AllowedResourceActions = $ResourceActionCollection | Where-Object Allowed -eq "Yes" | ForEach-Object {"Microsoft.Intune_$($_.ResourceAction)"}
@@ -111,24 +116,39 @@ $params = @{
 }
 
 <#
+
 3. Connect to MS Graph and create the Role Definition
 
-  - Delete any existing role that has the same display name
 #>
 
 # Connect to Microsoft Graph and request the "RBAC Read/Write" scope
-Connect-MgGraph -UseDeviceAuthentication -Scopes DeviceManagementRBAC.ReadWrite.All
+Connect-MgGraph -Scopes DeviceManagementRBAC.ReadWrite.All
 
+# Verify whether a conflicting role with the same display name already exists
 $ExistingRoleDefinition = Get-MgDeviceManagementRoleDefinition | Where-Object DisplayName -like $RoleDisplayName
 
+# If an existing role has the same display name, return an error and exit. Use the -Force parameter to delete the conflicting role.
 if ($ExistingRoleDefinition) {
 
-  Write-Host "`n"
+  if ($Force) {
 
-  Write-Warning "The role $RoleDisplayName already exists and will be deleted.`n"
+    Write-Host "`n"
 
-  Remove-MgDeviceManagementRoleDefinition -RoleDefinitionId $ExistingRoleDefinition.Id -Confirm:$false
+    Write-Warning "The role $RoleDisplayName already exists and will be deleted.`n"
 
+    Remove-MgDeviceManagementRoleDefinition -RoleDefinitionId $ExistingRoleDefinition.Id -Confirm:$false
+
+  }
+
+  else {
+
+    Write-Host "`n"
+
+    Write-Error "A conflicting role with the same display name already exists. Use the -Force parameter to delete the conflicting role.`n"
+
+    Exit
+
+  }
 }
 
 # Create the Custom Intune (Role Definition)
