@@ -29,6 +29,8 @@ Description of the custom role.
 
 #>
 
+#Requires -Modules Microsoft.Graph.DeviceManagement.Administration, Microsoft.Graph.Authentication
+
 param (
   [String]
   [Parameter(Mandatory, Position=0)]
