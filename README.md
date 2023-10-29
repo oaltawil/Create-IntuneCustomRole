@@ -10,4 +10,4 @@ PowerShell script that creates a custom role in Microsoft Intune.
 
 - Usage: .\Create-CustomIntuneRole.ps1 -RoleDefinitionCsvFilePath "$ENV:USERPROFILE\Documents\CustomIntuneRole.csv" -RoleDisplayName "Help Desk L2 Administrator" -RoleDescription "Can view and manage various aspects of Microsoft Intune"
 
-- Note: The included CSV file "CustomIntuneRole.csv" defines the allowed resource actions for the built-in "Help Desk Operator" role.
+- The included Csv file "CustomIntuneRole.csv" defines the allowed resource actions for the built-in "Help Desk Operator" role.
