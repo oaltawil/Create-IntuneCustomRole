@@ -10,7 +10,7 @@ This script creates a new custom role, more specifically, a new role definition,
 2. Defines a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the Csv file for the corresponding property of the Role Definition object: rolePermissions -> resourceActions -> allowedResourceActions.
 3. Creates a custom role (role definition) using the MS Graph cmdlet New-MgDeviceManagementRoleDefinition. The cmdlet returns an Http response with an Http status code (200: OK - Request succeeded) and the role definition object in the body of the response.
   
-! - Warning - ! If a role with the same display name already exists, that role will be deleted and a new one will be created.
+- Warning: If a role with the same display name already exists, that role will be deleted and a new one will be created.
 
 .PARAMETER RoleDefinitionCsvFilePath
 Full path to a Csv file with the following schema (column headers): "ResourceAction", "Allowed", and "Description".
@@ -23,19 +23,23 @@ Description of the custom role.
 
 .EXAMPLE
 .\Create-CustomIntuneRole.ps1 -RoleDefinitionCsvFilePath "$ENV:USERPROFILE\Documents\CustomIntuneRole.csv" -RoleDisplayName "Help Desk L2 Administrator" -RoleDescription "Can view and manage various aspects of Microsoft Intune"
+
+.EXAMPLE
+.\Create-CustomIntuneRole.ps1 "$ENV:USERPROFILE\Documents\CustomIntuneRole.csv" "Help Desk L2 Administrator" "Can view and manage various aspects of Microsoft Intune"
+
 #>
 
 param (
   [String]
-  [Parameter(Mandatory)]
+  [Parameter(Mandatory, Position=0)]
   [ValidateNotNullOrEmpty()]
   $RoleDefinitionCsvFilePath,
   [String]
-  [Parameter(Mandatory)]
+  [Parameter(Mandatory, Position=1)]
   [ValidateNotNullOrEmpty()]
   $RoleDisplayName,
   [String]
-  [Parameter(Mandatory)]
+  [Parameter(Mandatory, Position=2)]
   [ValidateNotNullOrEmpty()]
   $RoleDescription
 )
