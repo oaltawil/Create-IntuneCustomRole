@@ -1,4 +1,4 @@
-# Create-IntuneCustomRole
+# Create-CustomIntuneRole.ps1
 
 PowerShell script that creates a custom role in Microsoft Intune.
 
