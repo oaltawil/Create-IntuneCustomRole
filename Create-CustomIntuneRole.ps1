@@ -3,9 +3,14 @@
 This script creates a new custom role, more specifically, a new role definition, in Microsoft Intune based on a list of resource actions described in a Csv file.
 
 .DESCRIPTION
-1. The script reads a Csv file that contains the allowed resource actions for the new role definition.
-2. Defines an <IMicrosoftGraphRoleDefinition> object and uses the allowed resource actions from the Csv file for the corresponding property of the MS Graph Role Definition object.
-3. Creates a custom role (role definition) using the MS Graph cmdlet New-MgDeviceManagementRoleDefinition.
+1. The script reads a Csv file that contains the allowed resource actions for the new role definition. The Csv file should have the following format:
+    ResourceAction,Allowed,Description
+    AndroidFota_Assign,No,Assign Android firmware over-the-air (FOTA) deployments to Azure AD security groups.
+    ...
+2. Defines an Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the Csv file for the corresponding property of the Role Definition object: rolePermissions -> resourceActions -> allowedResourceActions.
+3. Creates a custom role (role definition) using the MS Graph cmdlet New-MgDeviceManagementRoleDefinition. The cmdlet returns an Http response with an Http status code (200: OK - Request succeeded) and the role definition object in the body of the response.
+  
+Warning: If a role with the same display name already exists, that role will be deleted and a new one will be created.
 
 .PARAMETER RoleDefinitionCsvFilePath
 Full path to a Csv file with the following schema (column headers): "ResourceAction", "Allowed", and "Description".
@@ -76,14 +81,14 @@ $AllowedResourceActions = $ResourceActionCollection | Where-Object Allowed -eq "
 
 2. Create the Role Definition
 
-  - Define an <IMicrosoftGraphRoleDefinition> Json object using a hashtable
+  - Define a Microsoft.Graph.RoleDefinition Json object using a hashtable
   - Use the allowed resource actions (from the Csv file) for the corresponding property of the MS Graph Role Definition object
 
 #>
 
 Import-Module Microsoft.Graph.DeviceManagement.Administration -ErrorAction Stop
 
-# Define the <IMicrosoftGraphRoleDefinition> Json object using a hashtable
+# Define the Microsoft.Graph.RoleDefinition Json object using a hashtable
 $params = @{
   "@odata.type" = "#microsoft.graph.roleDefinition"
   displayName = $RoleDisplayName
@@ -110,7 +115,7 @@ $ExistingRoleDefinition = Get-MgDeviceManagementRoleDefinition | Where-Object Di
 
 if ($ExistingRoleDefinition) {
 
-  Write-Warning "`nThe role $RoleDisplayName already exists and will be removed.`n`n"
+  Write-Warning "`nThe role $RoleDisplayName already exists and will be deleted.`n`n"
 
   Remove-MgDeviceManagementRoleDefinition -RoleDefinitionId $ExistingRoleDefinition.Id -Confirm:$false
 
