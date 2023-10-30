@@ -21,4 +21,5 @@ PowerShell script that creates a custom role - role definition - in Microsoft In
 3. Creates a custom role (role definition) using the Microsoft Graph Device Management cmdlet New-MgDeviceManagementRoleDefinition.
     -The cmdlet displays the headers and bodies of the Http request and response messages. The bodies of both messages include the complete definition of the custom role. The Http response includes an Http status code, e.g. 200: OK.
     - If a role with the same display name already exists, the script returns an error and exits. Use the -Force parameter to delete the conflicting role and create a new one.
-4. The CustomIntuneRole.csv and CustomIntuneRole.txt input files have been generated from the built-in "Help Desk Operator" role.
+4. The CustomIntuneRole.csv and CustomIntuneRole.txt input files have been generated from the built-in "Help Desk Operator" role and define the resource actions allowed for that role. 
+5. Please note than any disallowed resource actions (those with "Allowed" set to "No") in the Csv input file will *not* be added to the "notAllowedResourceActions" property of the Microsoft.Graph.roleDefinition object. They will simply be ignored.
