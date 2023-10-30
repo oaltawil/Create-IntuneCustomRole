@@ -185,5 +185,5 @@ if ($ExistingRoleDefinition) {
   }
 }
 
-# Create the Custom Intune (Role Definition) by passing the Microsoft.Graph.roleDefinition object
+# Create the custom Intune role (Role Definition) by passing the Microsoft.Graph.roleDefinition object
 New-MgDeviceManagementRoleDefinition -BodyParameter $params -Debug -Confirm:$false
