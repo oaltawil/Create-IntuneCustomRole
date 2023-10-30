@@ -136,7 +136,7 @@ else {
 2. Create the MS Graph Role Definition object
 
   - Define a Microsoft.Graph.RoleDefinition object using a hashtable
-  - Use the allowed resource actions (from the Csv file) for the corresponding property of the MS Graph Role Definition object
+  - Use the allowed resource actions (from the Txt file or Csv file) for the corresponding property of the MS Graph Role Definition object
 #>
 
 Import-Module Microsoft.Graph.DeviceManagement.Administration -ErrorAction Stop
