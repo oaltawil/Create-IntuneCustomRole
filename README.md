@@ -17,6 +17,7 @@ PowerShell script that creates a custom role - role definition - in Microsoft In
 
         AndroidFota_Read,Yes
 
-2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the Csv file for the corresponding property of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions.
-3. Creates a custom role (role definition) using the MS Graph cmdlet New-MgDeviceManagementRoleDefinition. The cmdlet returns an Http response with an Http status code (200: OK - Request succeeded) and the role definition object in the body of the response.
+2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the input file for the corresponding property of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions.
+3. Creates a custom role (role definition) using the Microsoft Graph Device Management cmdlet New-MgDeviceManagementRoleDefinition.
+    -The cmdlet displays the headers and bodies of the Http request and response messages. The bodies of both messages include the complete definition of the custom role. The Http response includes an Http status code, e.g. 200: OK.
     - If a role with the same display name already exists, the script returns an error and exits. Use the -Force parameter to delete the conflicting role and create a new one.

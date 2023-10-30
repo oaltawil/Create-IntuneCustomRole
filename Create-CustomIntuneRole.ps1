@@ -22,15 +22,13 @@ If a role with the same display name already exists, the script returns an error
 
 .PARAMETER RoleDefinitionFilePath
 Full path to a .txt (Text) file that contains the list of allowed resource actions. Example:
-  AndroidFota_Read
-  AndroidSync_Read
-  ...
+  CloudAttach_Collections
+  ManagedDevices_Read
 Alternatively, the full path to a .csv (comma-separated value) file with two column headers: "ResourceAction" and "Allowed". Additional columns, e.g. Description, will be ignored. Example:
   ResourceAction,Allowed
-  AndroidFota_Assign,No
-  ...
-  AndroidFota_Read,Yes
-  ...  
+  ManagedDevices_Read,Yes
+  ManagedDevices_Delete,No
+
 .PARAMETER RoleDisplayName
 Display name of the custom role.
 
@@ -38,13 +36,13 @@ Display name of the custom role.
 Description of the custom role.
 
 .PARAMETER Force
-Deletes a conflicting role definition that has the same display name
+Deletes a conflicting role definition that has the same display name.
 
 .EXAMPLE
 .\Create-CustomIntuneRole.ps1 -RoleDefinitionFilePath "$ENV:USERPROFILE\Documents\CustomIntuneRole.csv" -RoleDisplayName "Help Desk L2 Administrator" -RoleDescription "Can view and manage various aspects of Microsoft Intune"
 
 .EXAMPLE
-.\Create-CustomIntuneRole.ps1 "$ENV:USERPROFILE\Documents\CustomIntuneRole.txt" "Help Desk L2 Administrator" "Can view and manage various aspects of Microsoft Intune"
+.\Create-CustomIntuneRole.ps1 "$ENV:USERPROFILE\Documents\CustomIntuneRole.txt" "Help Desk L2 Administrator" "Can view and manage various aspects of Microsoft Intune" -Force
 
 #>
 
@@ -67,44 +65,45 @@ param (
   $Force
 )
 
+# Stop script execution if any error occurs
+$ErrorActionPreference = 'Stop'
+
 <#
 
-1. Import the Txt file or Csv file.
+1. Import the Txt or Csv file.
 
 #>
 
 # Verify that the input file exists
-$RoleDefinitionFile = Get-Item -Path $RoleDefinitionFilePath -ErrorAction Stop
+$RoleDefinitionFile = Get-Item -Path $RoleDefinitionFilePath
 
-if ($RoleDefinitionFile.Extension -like ".txt")
+if ($RoleDefinitionFile.Extension -eq ".txt")
 {
 
   # Read the contents of the input file
-  $RoleDefinitionFileContent = Get-Content -Path $RoleDefinitionFilePath -ErrorAction Stop
+  $RoleDefinitionFileContent = Get-Content -Path $RoleDefinitionFilePath
 
   # Verify that the input file is not empty
-  if (-not $RoleDefinitionFileContent.count) {
+  if (-not $RoleDefinitionFileContent) {
 
-    Write-Error "The input file $RoleDefinitionFilePath is empty.`n"
-
-    Exit
+    Write-Error "The input text file $RoleDefinitionFilePath is empty."
 
   }
 
+  # Prepend the provider name "Microsoft.Intune_" to the resource action value expressed as "resource_action"
+  # Example: Microsoft.Intune_ManagedDevices_Read
   $AllowedResourceActions = $RoleDefinitionFileContent | ForEach-Object {"Microsoft.Intune_$($_)"}
 
 }
-elseif ($RoleDefinitionFile.Extension -like ".csv") {
+elseif ($RoleDefinitionFile.Extension -eq ".csv") {
 
   # Import the Csv file to a collection (array) of PSCustomObject objects
-  $ResourceActionCollection = Import-Csv -Path $RoleDefinitionFilePath -ErrorAction Stop
+  $ResourceActionCollection = Import-Csv -Path $RoleDefinitionFilePath
 
   # Verify that at least one record was returned
   if (-not $ResourceActionCollection.count) {
     
     Write-Error "The Csv file does not contain any records."
-
-    Exit
 
   }
 
@@ -116,8 +115,6 @@ elseif ($RoleDefinitionFile.Extension -like ".csv") {
 
     Write-Error "The Csv file does not have the correct schema: ResourceAction and Allowed."
 
-    Exit
-
   }
 
   # Retrieve the allowed resource actions. Prepend the provider name "Microsoft.Intune_" to the resource action name
@@ -126,20 +123,20 @@ elseif ($RoleDefinitionFile.Extension -like ".csv") {
 }
 else {
 
-  Write-Error "Unexpected file extension: $($RoleDefinitionFile.Extension). The script expects either a .txt or .csv file.`n"
-
-  Exit
+  Write-Error "Unsupported file extension: $($RoleDefinitionFile.Extension). The script expects either a .txt or .csv file extension."
 
 }
 
 <#
+
 2. Create the MS Graph Role Definition object
 
   - Define a Microsoft.Graph.RoleDefinition object using a hashtable
   - Use the allowed resource actions (from the Txt file or Csv file) for the corresponding property of the MS Graph Role Definition object
+
 #>
 
-Import-Module Microsoft.Graph.DeviceManagement.Administration -ErrorAction Stop
+Import-Module Microsoft.Graph.DeviceManagement.Administration
 
 # Define the Microsoft.Graph.RoleDefinition Json object using a hashtable
 $params = @{
@@ -178,9 +175,7 @@ if ($ExistingRoleDefinition) {
 
   if ($Force) {
 
-    Write-Host "`n"
-
-    Write-Warning "The role $RoleDisplayName already exists and will be deleted.`n"
+    Write-Warning "The role $RoleDisplayName already exists and will be deleted."
 
     Remove-MgDeviceManagementRoleDefinition -RoleDefinitionId $ExistingRoleDefinition.Id -Confirm:$false
 
@@ -188,14 +183,10 @@ if ($ExistingRoleDefinition) {
 
   else {
 
-    Write-Host "`n"
-
-    Write-Error "A conflicting role with the same display name already exists. Use the -Force parameter to delete the conflicting role.`n"
-
-    Exit
+    Write-Error "A conflicting role with the same display name already exists. Use the -Force parameter to delete the conflicting role."
 
   }
 }
 
-# Create the Custom Intune (Role Definition)
+# Create the Custom Intune (Role Definition) by passing the Microsoft.Graph.roleDefinition object
 New-MgDeviceManagementRoleDefinition -BodyParameter $params -Debug -Confirm:$false
