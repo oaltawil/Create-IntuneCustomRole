@@ -7,7 +7,7 @@ This script creates a new custom role - more specifically, a new custom role def
     ResourceAction,Allowed
     AndroidFota_Read,Yes
     AndroidSync_Read,Yes
-2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed and not allowed resource actions from the input file for the corresponding properties of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions and roleDefinition.rolePermissions.resourceActions.notAllowedResourceActions.
+2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the input file for the corresponding property of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions.
 3. Creates a custom role (role definition) using the MS Graph cmdlet New-MgDeviceManagementRoleDefinition. The cmdlet returns an Http response with an Http status code (200: OK - Request succeeded) and the role definition object in the body of the response.
 
 If a role with the same display name already exists, the script returns an error and exits. Use the -Force parameter to delete the conflicting role and create a new one.
@@ -89,9 +89,6 @@ if ($RoleDefinitionFile.Extension -eq ".csv") {
   # Retrieve the allowed resource actions. Prepend the provider name "Microsoft.Intune_" to the resource action name
   $AllowedResourceActions = $ResourceActionCollection | Where-Object Allowed -eq "Yes" | ForEach-Object {"Microsoft.Intune_$($_.ResourceAction)"}
 
-  # Retrieve the disallowed resource actions. Prepend the provider name "Microsoft.Intune_" to the resource action name
-  $NotAllowedResourceActions = $ResourceActionCollection | Where-Object Allowed -eq "No" | ForEach-Object {"Microsoft.Intune_$($_.ResourceAction)"}
-
 }
 else {
 
@@ -104,7 +101,7 @@ else {
 2. Create the MS Graph Role Definition object
 
   - Define a Microsoft.Graph.RoleDefinition object using a hashtable
-  - Use the allowed and not allowed resource actions (from the Csv file) for the corresponding properties of the MS Graph Role Definition object
+  - Use the allowed resource actions (from the Csv file) for the corresponding property of the MS Graph Role Definition object
 
 #>
 
@@ -122,7 +119,7 @@ $params = @{
         @{
           "@odata.type" = "microsoft.graph.resourceAction"
           allowedResourceActions = $AllowedResourceActions
-          notAllowedResourceActions = $NotAllowedResourceActions
+          notAllowedResourceActions = @()
         }
       )
     }
