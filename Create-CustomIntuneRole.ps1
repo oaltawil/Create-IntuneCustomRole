@@ -3,24 +3,17 @@
 This script creates a new custom role - more specifically, a new custom role definition - in Microsoft Intune based on a list of resource actions described in a text file.
 
 .DESCRIPTION
-1. The script accepts two input file formats - a text file or a Csv file - that contain the list of allowed resource actions specified as resource_action, e.g. ManagedDevices_Read.
-  1.1 A simple text file with the list of allowed resource actions:
-    AndroidFota_Read
-    AndroidSync_Read
-  1.2 A Csv file that contains two column headers: ResourceAction and Allowed (Yes/No):
+1. The script requires a Csv file that contains two column headers: ResourceAction and Allowed (Yes/No). The resource actions must be formatted as resource_action, e.g. ManagedDevices_Read.
     ResourceAction,Allowed
     AndroidFota_Read,Yes
     AndroidSync_Read,Yes
-2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the input file for the corresponding property of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions.
+2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed and not allowed resource actions from the input file for the corresponding properties of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions and roleDefinition.rolePermissions.resourceActions.notAllowedResourceActions.
 3. Creates a custom role (role definition) using the MS Graph cmdlet New-MgDeviceManagementRoleDefinition. The cmdlet returns an Http response with an Http status code (200: OK - Request succeeded) and the role definition object in the body of the response.
 
 If a role with the same display name already exists, the script returns an error and exits. Use the -Force parameter to delete the conflicting role and create a new one.
 
 .PARAMETER RoleDefinitionFilePath
-1. Full path to a .txt (Text) file that contains the list of allowed resource actions. Example:
-  DeviceCompliancePolices_Read
-  DeviceCompliancePolices_ViewReports
-2. Alternatively, the full path to a .csv (comma-separated value) file with two column headers: "ResourceAction" and "Allowed". Additional columns, e.g. Description, will be ignored. Example:
+The full path to a .csv (comma-separated value) file with two column headers: "ResourceAction" and "Allowed". Additional columns, e.g. Description, will be ignored. Example:
   ResourceAction,Allowed
   DeviceCompliancePolices_Create,No
   DeviceCompliancePolices_Read,Yes
@@ -37,9 +30,6 @@ Deletes a conflicting role definition that has the same display name.
 
 .EXAMPLE
 .\Create-CustomIntuneRole.ps1 -RoleDefinitionFilePath "$ENV:USERPROFILE\Documents\CustomIntuneRole.csv" -RoleDisplayName "Help Desk L2 Administrator" -RoleDescription "Can view and manage various aspects of Microsoft Intune"
-
-.EXAMPLE
-.\Create-CustomIntuneRole.ps1 "$ENV:USERPROFILE\Documents\CustomIntuneRole.txt" "Help Desk L2 Administrator" "Can view and manage various aspects of Microsoft Intune" -Force
 
 #>
 
@@ -67,32 +57,14 @@ $ErrorActionPreference = 'Stop'
 
 <#
 
-1. Import the Txt or Csv file.
+1. Import the Csv file.
 
 #>
 
 # Verify that the input file exists
 $RoleDefinitionFile = Get-Item -Path $RoleDefinitionFilePath
 
-if ($RoleDefinitionFile.Extension -eq ".txt")
-{
-
-  # Read the contents of the input file
-  $RoleDefinitionFileContent = Get-Content -Path $RoleDefinitionFilePath
-
-  # Verify that the input file is not empty
-  if (-not $RoleDefinitionFileContent) {
-
-    Write-Error "The input text file $RoleDefinitionFilePath is empty."
-
-  }
-
-  # Prepend the provider name "Microsoft.Intune_" to the resource action value expressed as "resource_action"
-  # Example: Microsoft.Intune_ManagedDevices_Read
-  $AllowedResourceActions = $RoleDefinitionFileContent | ForEach-Object {"Microsoft.Intune_$($_)"}
-
-}
-elseif ($RoleDefinitionFile.Extension -eq ".csv") {
+if ($RoleDefinitionFile.Extension -eq ".csv") {
 
   # Import the Csv file to a collection (array) of PSCustomObject objects
   $ResourceActionCollection = Import-Csv -Path $RoleDefinitionFilePath
@@ -117,10 +89,13 @@ elseif ($RoleDefinitionFile.Extension -eq ".csv") {
   # Retrieve the allowed resource actions. Prepend the provider name "Microsoft.Intune_" to the resource action name
   $AllowedResourceActions = $ResourceActionCollection | Where-Object Allowed -eq "Yes" | ForEach-Object {"Microsoft.Intune_$($_.ResourceAction)"}
 
+  # Retrieve the disallowed resource actions. Prepend the provider name "Microsoft.Intune_" to the resource action name
+  $NotAllowedResourceActions = $ResourceActionCollection | Where-Object Allowed -eq "No" | ForEach-Object {"Microsoft.Intune_$($_.ResourceAction)"}
+
 }
 else {
 
-  Write-Error "Unsupported file extension: $($RoleDefinitionFile.Extension). The script expects either a .txt or .csv file extension."
+  Write-Error "Unsupported file extension: $($RoleDefinitionFile.Extension). The script expects requires a .csv file extension."
 
 }
 
@@ -129,7 +104,7 @@ else {
 2. Create the MS Graph Role Definition object
 
   - Define a Microsoft.Graph.RoleDefinition object using a hashtable
-  - Use the allowed resource actions (from the Txt file or Csv file) for the corresponding property of the MS Graph Role Definition object
+  - Use the allowed and not allowed resource actions (from the Csv file) for the corresponding properties of the MS Graph Role Definition object
 
 #>
 
@@ -147,7 +122,7 @@ $params = @{
         @{
           "@odata.type" = "microsoft.graph.resourceAction"
           allowedResourceActions = $AllowedResourceActions
-          notAllowedResourceActions = @()
+          notAllowedResourceActions = $NotAllowedResourceActions
         }
       )
     }

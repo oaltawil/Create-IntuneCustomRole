@@ -2,14 +2,7 @@
 
 PowerShell script that creates a custom role - role definition - in Microsoft Intune.
 
-1. The script accepts two input file formats - a text file or a Csv file - that contain the list of allowed resource actions specified as resource_action, e.g. ManagedDevices_Read.
-    - A simple text file with the list of allowed resource actions:
-
-        AndroidFota_Read
-
-        AndroidSync_Read
-
-    - A Csv file that contains two column headers: ResourceAction and Allowed (Yes/No):
+1. The script requires a Csv file with two column headers: ResourceAction and Allowed (Yes/No). The list of allowed and not allowed resource actions must be specified as resource_action, e.g. ManagedDevices_Read.
 
         ResourceAction,Allowed
 
@@ -17,9 +10,8 @@ PowerShell script that creates a custom role - role definition - in Microsoft In
 
         AndroidFota_Read,Yes
 
-2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed resource actions from the input file for the corresponding property of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions.
+2. Creates a Microsoft.Graph.RoleDefinition object and uses the allowed and not allowed resource actions from the input file for the corresponding properties of the Role Definition object: roleDefinition.rolePermissions.resourceActions.allowedResourceActions and roleDefinition.rolePermissions.resourceActions.NotAllowedResourceActions.
 3. Creates a custom role (role definition) using the Microsoft Graph Device Management cmdlet New-MgDeviceManagementRoleDefinition.
     -The cmdlet displays the headers and bodies of the Http request and response messages. The bodies of both messages include the complete definition of the custom role. The Http response includes an Http status code, e.g. 200: OK.
     - If a role with the same display name already exists, the script returns an error and exits. Use the -Force parameter to delete the conflicting role and create a new one.
-4. The CustomIntuneRole.csv and CustomIntuneRole.txt input files have been generated from the built-in "Help Desk Operator" role and define the resource actions allowed for that role. 
-5. Please note than any disallowed resource actions (those with "Allowed" set to "No") in the Csv input file will *not* be added to the "notAllowedResourceActions" property of the Microsoft.Graph.roleDefinition object. They will simply be ignored.
+4. The CustomIntuneRole.csv has been generated from the built-in "Help Desk Operator" role and defines the allowed and not allowed resource actions for that role.
