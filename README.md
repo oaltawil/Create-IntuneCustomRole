@@ -2,7 +2,7 @@
 
 PowerShell script that creates a custom role - role definition - in Microsoft Intune.
 
-1. The script requires a Csv file with two column headers: ResourceAction and Allowed (Yes/No). The list of allowed resource actions must be specified as resource_action, e.g. ManagedDevices_Read.
+1. The script requires a Csv file with two column headers: ResourceAction and Allowed (Yes/No). The list of allowed resource actions must be specified as <resource name>_<action>, e.g. ManagedDevices_Read.
 
         ResourceAction,Allowed
 
